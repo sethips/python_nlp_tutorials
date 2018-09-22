@@ -42,3 +42,8 @@ print("---Print Lemma---")
 print("")
 w = Word("universities")
 print(w.lemmatize())
+
+print("")
+print("---Print Positivity---")
+print("")
+print(blob.sentiment)
