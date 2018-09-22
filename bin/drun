@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+IMAGE_NAME=python-nlp
+
+function usage() {
+  cat <<EOF
+Usage:
+  $(basename "$0") help             : Show command usage help
+  $(basename "$0") test             : Run unit tests for the project
+  $(basename "$0") lint             : Run style and compile checks
+  $(basename "$0") install          : Install a new Python package
+  $(basename "$0") update [package] : Update specified Python package
+  $(basename "$0") [command]        : run command in the container
+  $(basename "$0") build            : Build the container. Used for testing the build process.
+EOF
+}
+
+function docker_run_local() {
+  docker run \
+    -v "$(pwd)":/workspace \
+    -v "$IMAGE_NAME-usr-local":/usr/local/ \
+    -it "$IMAGE_NAME" \
+    /bin/sh -c "$1"
+}
+
+[[ -z "$1" ]] && usage && exit 1
+
+if [[ "$1" = "install" ]]; then
+  docker_run_local "pip install ${*:2} && pip freeze > requirements.txt"
+elif [[ "$1" = "update" ]]; then
+  docker_run_local "pip install ${*:2} --upgrade && pip freeze > requirements.txt"
+elif [[ "$1" = "uninstall" ]]; then
+  docker_run_local "pip uninstall ${*:2} && pip freeze > requirements.txt"
+elif [[ "$1" = "build" ]]; then
+  echo "#########################################################
+  Building Docker container
+  #########################################################"
+  docker build -t "$IMAGE_NAME" -f "Dockerfile" .
+
+  echo "
+  Build complete.
+  "
+elif [[ "$1" = "help" ]]; then
+  usage
+elif [[ "$1" = "test" ]]; then
+  docker_run_local "nosetests"
+elif [[ "$1" = "lint" ]]; then
+  docker_run_local "flake8"
+else
+  docker_run_local "$@"
+fi
